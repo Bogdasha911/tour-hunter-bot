@@ -1,0 +1,77 @@
+global_defaults:
+  timeout_seconds: 45
+  currency: RUB
+  enabled: true
+
+sources:
+  - name: travelata
+    enabled: true
+    use_playwright: true
+    search_url: "https://travelata.ru/search#?fromCity=2&toCountry=AE&adults={adults}&startDate={date_from}&endDate={date_to}"
+    item_selector: ".hotel-card, .serp-hotel-card, .search-result, [class*='hotel-card'], [class*='HotelCard']"
+    allowed_destination_keywords: ["дубай", "dubai", "uae", "оаэ", "emirates", "jumeirah", "marina", "deira", "sharjah", "ajman"]
+    banned_hotel_keywords: ["авиабилет", "перелет", "transfer only", "visa", "страховка"]
+    min_price: 15000
+    max_price: 200000
+    fields:
+      hotel_name:
+        selectors: [".hotel-card__title", ".hotel-name", "h3", "h2", "[class*='title']"]
+      price_text:
+        selectors: [".hotel-card-price", ".price", "[class*='price']"]
+      departure_text:
+        selectors: [".hotel-card-date", ".date", "[class*='date']"]
+      nights_text:
+        selectors: [".hotel-card-nights", ".nights", "[class*='night']"]
+      meal:
+        selectors: [".hotel-card-meal", ".meal", "[class*='meal']"]
+      link:
+        selectors: ["a"]
+        attr: href
+
+  - name: leveltravel
+    enabled: true
+    use_playwright: true
+    search_url: "https://level.travel/explorer/search?from=MOW&to=AER&nightsFrom={nights_min}&nightsTo={nights_max}&adults={adults}&kids={children}"
+    item_selector: "[data-testid='serp-tour-card'], .serp-card, .search-result, .tour-card, [class*='serp']"
+    allowed_destination_keywords: ["дубай", "dubai", "uae", "оаэ", "emirates", "jumeirah", "marina", "deira", "sharjah", "ajman"]
+    banned_hotel_keywords: ["авиабилет", "перелет", "transfer only", "visa", "страховка"]
+    min_price: 15000
+    max_price: 200000
+    fields:
+      hotel_name:
+        selectors: ["[data-testid='hotel-name']", ".serp-card__title", ".hotel-name", "h3", "[class*='hotel']"]
+      price_text:
+        selectors: ["[data-testid='price']", ".price", ".serp-card__price", "[class*='price']"]
+      departure_text:
+        selectors: ["[data-testid='departure-date']", ".departure-date", "[class*='date']"]
+      nights_text:
+        selectors: ["[data-testid='nights']", ".nights", "[class*='night']"]
+      meal:
+        selectors: ["[data-testid='meal']", ".meal", "[class*='meal']"]
+      link:
+        selectors: ["a"]
+        attr: href
+
+  - name: onlinetours
+    enabled: true
+    use_playwright: true
+    search_url: "https://www.onlinetours.ru/search?departureCity={departure_city_q}&destination={destination_q}&adults={adults}&children={children}&dateFrom={date_from}&dateTo={date_to}"
+    item_selector: ".search-result, .hotel-card, [class*='hotel-card'], [class*='search-result'], article"
+    allowed_destination_keywords: ["дубай", "dubai", "uae", "оаэ", "emirates", "jumeirah", "marina", "deira", "sharjah", "ajman"]
+    banned_hotel_keywords: ["авиабилет", "перелет", "transfer only", "visa", "страховка"]
+    min_price: 15000
+    max_price: 200000
+    fields:
+      hotel_name:
+        selectors: [".hotel-name", ".hotel-card__title", "h3", "h2", "[class*='title']"]
+      price_text:
+        selectors: [".price", "[class*='price']"]
+      departure_text:
+        selectors: [".date", "[class*='date']"]
+      nights_text:
+        selectors: [".nights", "[class*='night']"]
+      meal:
+        selectors: [".meal", "[class*='meal']"]
+      link:
+        selectors: ["a"]
+        attr: href

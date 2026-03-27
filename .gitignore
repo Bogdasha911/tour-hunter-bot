@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.db
+*.sqlite
+data/*.db
+data/*.sqlite
+data/tours.db
+bot_state.json
