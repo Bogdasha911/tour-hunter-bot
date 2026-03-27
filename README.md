@@ -1,3 +1,4 @@
+test deploy FINAL
 # Tour Hunter Bot
 
 Мощный Telegram-бот для поиска самых дешёвых и горящих туров с запуском на сервере.
