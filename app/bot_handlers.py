@@ -7,7 +7,7 @@ from datetime import date
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from .config import Settings
@@ -26,67 +26,94 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
                 await message.answer("Нет доступа.")
                 return
             return await func(message, *args)
+
         return wrapper
 
     def is_admin_callback(callback: CallbackQuery) -> bool:
         return callback.from_user is not None and callback.from_user.id in settings.admin_ids
 
-    def admin_keyboard() -> InlineKeyboardMarkup:
+    def main_menu() -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="📊 Статус", callback_data="admin_status")],
                 [
-                    InlineKeyboardButton(text="🔄 Tour", callback_data="restart_tour"),
-                    InlineKeyboardButton(text="🔄 Avito", callback_data="restart_avito"),
+                    InlineKeyboardButton(text="📊 Статус", callback_data="menu_status"),
+                    InlineKeyboardButton(text="🔍 Сканировать", callback_data="menu_scan"),
                 ],
                 [
-                    InlineKeyboardButton(text="📜 Логи Tour", callback_data="logs_tour"),
-                    InlineKeyboardButton(text="📜 Логи Avito", callback_data="logs_avito"),
+                    InlineKeyboardButton(text="🏆 Лучшие туры", callback_data="menu_top"),
+                    InlineKeyboardButton(text="🕘 История", callback_data="menu_history"),
                 ],
-                [InlineKeyboardButton(text="🚀 Деплой", callback_data="deploy_tour")],
+                [
+                    InlineKeyboardButton(text="⚙️ Фильтры", callback_data="menu_filters"),
+                    InlineKeyboardButton(text="🧩 Источники", callback_data="menu_sources"),
+                ],
+                [
+                    InlineKeyboardButton(text="🛠 Админ", callback_data="menu_admin"),
+                ],
             ]
         )
 
-    def get_service_status(service: str) -> str:
-        try:
-            return subprocess.check_output(
-                ["systemctl", "is-active", service],
-                stderr=subprocess.STDOUT
-            ).decode().strip()
-        except Exception:
-            return "unknown"
-
-    def get_service_logs(service: str, lines: int = 20) -> str:
-        try:
-            logs = subprocess.check_output(
-                ["journalctl", "-u", service, "-n", str(lines), "--no-pager"],
-                stderr=subprocess.STDOUT
-            ).decode()
-            return logs[-3500:]
-        except Exception as e:
-            return f"Ошибка чтения логов {service}: {e}"
-
-    @router.message(Command("start"))
-    @admin_only
-    async def start_cmd(message: Message):
-        await message.answer(
-            "Готово. Я слежу за дешёвыми и горящими турами.\n\n"
-            "/admin\n/status\n/scan_now\n/top_deals\n/history\n/sources\n/reload_sources\n"
-            "/set_budget 60000\n/set_nights 5 10\n/set_dates 2026-04-01 2026-04-10\n"
-            "/set_city Москва\n/set_destination Дубай\n/set_adults 1\n/set_children 0\n"
-            "/set_drop 7\n/set_results 60\n"
-            "/toggle_source travelata on\n/deploy\n"
-            "/bot_status\n/bot_restart tour\n/bot_restart avito\n/bot_logs tour"
+    def filters_menu() -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="💰 50k", callback_data="set_budget_50000"),
+                    InlineKeyboardButton(text="💰 60k", callback_data="set_budget_60000"),
+                    InlineKeyboardButton(text="💰 80k", callback_data="set_budget_80000"),
+                ],
+                [
+                    InlineKeyboardButton(text="🌙 3-5", callback_data="set_nights_3_5"),
+                    InlineKeyboardButton(text="🌙 5-7", callback_data="set_nights_5_7"),
+                    InlineKeyboardButton(text="🌙 7-10", callback_data="set_nights_7_10"),
+                ],
+                [
+                    InlineKeyboardButton(text="👤 1 взрослый", callback_data="set_adults_1"),
+                    InlineKeyboardButton(text="👥 2 взрослых", callback_data="set_adults_2"),
+                ],
+                [
+                    InlineKeyboardButton(text="🌍 Дубай", callback_data="set_destination_dubai"),
+                    InlineKeyboardButton(text="✈️ Москва", callback_data="set_city_moscow"),
+                ],
+                [
+                    InlineKeyboardButton(text="📉 Порог 5%", callback_data="set_drop_5"),
+                    InlineKeyboardButton(text="📉 Порог 7%", callback_data="set_drop_7"),
+                    InlineKeyboardButton(text="📉 Порог 10%", callback_data="set_drop_10"),
+                ],
+                [
+                    InlineKeyboardButton(text="📦 30", callback_data="set_results_30"),
+                    InlineKeyboardButton(text="📦 60", callback_data="set_results_60"),
+                    InlineKeyboardButton(text="📦 100", callback_data="set_results_100"),
+                ],
+                [
+                    InlineKeyboardButton(text="⬅️ Назад", callback_data="back_main"),
+                ],
+            ]
         )
 
-    @router.message(Command("admin"))
-    @admin_only
-    async def admin_panel(message: Message):
-        await message.answer("Админ панель:", reply_markup=admin_keyboard())
+    def admin_menu() -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="📡 Статус сервисов", callback_data="admin_status"),
+                ],
+                [
+                    InlineKeyboardButton(text="🔄 Перезапуск tour", callback_data="restart_tour"),
+                    InlineKeyboardButton(text="🔄 Перезапуск avito", callback_data="restart_avito"),
+                ],
+                [
+                    InlineKeyboardButton(text="📜 Логи tour", callback_data="logs_tour"),
+                    InlineKeyboardButton(text="📜 Логи avito", callback_data="logs_avito"),
+                ],
+                [
+                    InlineKeyboardButton(text="🚀 Deploy", callback_data="deploy_tour"),
+                ],
+                [
+                    InlineKeyboardButton(text="⬅️ Назад", callback_data="back_main"),
+                ],
+            ]
+        )
 
-    @router.message(Command("status"))
-    @admin_only
-    async def status_cmd(message: Message):
+    async def render_status_text() -> str:
         async with sessionmaker() as session:
             repo = Repo(session)
             profile = await repo.get_or_create_profile()
@@ -101,9 +128,9 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
             f"Ночей: {profile.nights_min}-{profile.nights_max}",
             f"Даты: {profile.date_from or '-'} → {profile.date_to or '-'}",
             f"Взрослых: {profile.adults}, детей: {profile.children}",
-            f"Минимальное падение цены: {profile.min_drop_percent}%",
+            f"Мин. падение цены: {profile.min_drop_percent}%",
             f"Лимит карточек на источник: {profile.max_results_per_source}",
-            f"Источников в конфиге: {len(sources)}",
+            f"Источников: {len(sources)}",
             f"Сделок в истории: {stats['deals_total']}",
             f"Уникальных агрегатов: {stats['aggregates_total']}",
             f"Отправленных алертов: {stats['alerts_total']}",
@@ -112,8 +139,123 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
         ]
         for src in sources:
             enabled = source_states.get(src.name, src.enabled)
-            lines.append(f"- {src.name}: {'ON' if enabled else 'OFF'}")
-        await message.answer("\n".join(lines))
+            lines.append(f"• {src.name}: {'ON' if enabled else 'OFF'}")
+        return "\n".join(lines)
+
+    async def render_top_deals_text() -> str:
+        async with sessionmaker() as session:
+            repo = Repo(session)
+            items = await repo.get_top_deals(limit=12)
+
+        if not items:
+            return "Пока пусто."
+
+        lines = ["<b>Лучшие предложения в базе</b>"]
+        for item in items:
+            lines.append(
+                f"\n• <b>{item.hotel_name}</b>\n"
+                f"Источник: {item.source}\n"
+                f"Мин: {item.min_price} ₽ | Сейчас: {item.last_price} ₽\n"
+                f"Ночей: {item.nights or '-'} | Вылет: {item.departure_date or '-'}\n"
+                f"Ссылка: {item.last_link or '-'}"
+            )
+        return "\n".join(lines)
+
+    async def render_history_text() -> str:
+        async with sessionmaker() as session:
+            repo = Repo(session)
+            items = await repo.get_recent_history(limit=15)
+
+        if not items:
+            return "История пока пустая."
+
+        lines = ["<b>Последние изменения</b>"]
+        for item in items:
+            lines.append(
+                f"• {item.created_at:%d.%m %H:%M} | {item.source} | {item.hotel_name} | {item.price} ₽"
+            )
+        return "\n".join(lines)
+
+    async def render_sources_text() -> str:
+        async with sessionmaker() as session:
+            repo = Repo(session)
+            states = await repo.get_source_states()
+
+        items = load_sources(str(settings.sources_file))
+        lines = ["<b>Источники</b>"]
+        for item in items:
+            enabled = states.get(item.name, item.enabled)
+            lines.append(
+                f"• {item.name} | {'ON' if enabled else 'OFF'} | playwright={'yes' if item.use_playwright else 'no'}"
+            )
+            lines.append(f"  {item.search_url}")
+        return "\n".join(lines)
+
+    async def update_profile_and_answer(
+        callback: CallbackQuery,
+        **kwargs,
+    ) -> None:
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+
+        async with sessionmaker() as session:
+            repo = Repo(session)
+            profile = await repo.update_profile(**kwargs)
+
+        await callback.message.answer(
+            "✅ Обновлено:\n"
+            f"Маршрут: {profile.departure_city} → {profile.destination}\n"
+            f"Бюджет: {profile.budget} ₽\n"
+            f"Ночей: {profile.nights_min}-{profile.nights_max}\n"
+            f"Взрослых: {profile.adults}, детей: {profile.children}\n"
+            f"Мин. падение: {profile.min_drop_percent}%\n"
+            f"Лимит: {profile.max_results_per_source}",
+            reply_markup=filters_menu(),
+        )
+        await callback.answer()
+
+    def get_service_status(service: str) -> str:
+        try:
+            return subprocess.check_output(
+                ["systemctl", "is-active", service],
+                stderr=subprocess.STDOUT,
+            ).decode().strip()
+        except Exception:
+            return "unknown"
+
+    def get_service_logs(service: str, lines: int = 20) -> str:
+        try:
+            logs = subprocess.check_output(
+                ["journalctl", "-u", service, "-n", str(lines), "--no-pager"],
+                stderr=subprocess.STDOUT,
+            ).decode()
+            return logs[-3500:]
+        except Exception as e:
+            return f"Ошибка чтения логов {service}: {e}"
+
+    @router.message(Command("start"))
+    @admin_only
+    async def start_cmd(message: Message):
+        await message.answer(
+            "Готово. Теперь можно управлять ботом кнопками.",
+            reply_markup=main_menu(),
+        )
+
+    @router.message(Command("menu"))
+    @admin_only
+    async def menu_cmd(message: Message):
+        await message.answer("Главное меню:", reply_markup=main_menu())
+
+    @router.message(Command("admin"))
+    @admin_only
+    async def admin_panel(message: Message):
+        await message.answer("Админ панель:", reply_markup=admin_menu())
+
+    @router.message(Command("status"))
+    @admin_only
+    async def status_cmd(message: Message):
+        await message.answer(await render_status_text())
 
     @router.message(Command("scan_now"))
     @admin_only
@@ -128,50 +270,17 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
     @router.message(Command("top_deals"))
     @admin_only
     async def top_deals_cmd(message: Message):
-        async with sessionmaker() as session:
-            repo = Repo(session)
-            items = await repo.get_top_deals(limit=12)
-        if not items:
-            await message.answer("Пока пусто.")
-            return
-        lines = ["<b>Лучшие предложения в базе</b>"]
-        for item in items:
-            lines.append(
-                f"\n• <b>{item.hotel_name}</b>\n"
-                f"Источник: {item.source}\n"
-                f"Мин: {item.min_price} ₽ | Сейчас: {item.last_price} ₽\n"
-                f"Ночей: {item.nights or '-'} | Вылет: {item.departure_date or '-'}\n"
-                f"Ссылка: {item.last_link or '-'}"
-            )
-        await message.answer("\n".join(lines), disable_web_page_preview=True)
+        await message.answer(await render_top_deals_text(), disable_web_page_preview=True)
 
     @router.message(Command("history"))
     @admin_only
     async def history_cmd(message: Message):
-        async with sessionmaker() as session:
-            repo = Repo(session)
-            items = await repo.get_recent_history(limit=15)
-        if not items:
-            await message.answer("История пока пустая.")
-            return
-        lines = ["<b>Последние изменения</b>"]
-        for item in items:
-            lines.append(f"• {item.created_at:%d.%m %H:%M} | {item.source} | {item.hotel_name} | {item.price} ₽")
-        await message.answer("\n".join(lines))
+        await message.answer(await render_history_text())
 
     @router.message(Command("sources"))
     @admin_only
     async def sources_cmd(message: Message):
-        async with sessionmaker() as session:
-            repo = Repo(session)
-            states = await repo.get_source_states()
-        items = load_sources(str(settings.sources_file))
-        lines = ["<b>Источники</b>"]
-        for item in items:
-            enabled = states.get(item.name, item.enabled)
-            lines.append(f"• {item.name} | {'ON' if enabled else 'OFF'} | playwright={'yes' if item.use_playwright else 'no'}")
-            lines.append(f"  {item.search_url}")
-        await message.answer("\n".join(lines), disable_web_page_preview=True)
+        await message.answer(await render_sources_text(), disable_web_page_preview=True)
 
     @router.message(Command("reload_sources"))
     @admin_only
@@ -351,6 +460,122 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
         service = mapping[arg]
         await message.answer(f"<pre>{get_service_logs(service)}</pre>")
 
+    @router.message(Command("deploy"))
+    @admin_only
+    async def deploy_cmd(message: Message):
+        await message.answer("Тяну новый код из Git...")
+        ok, output = await run_deploy(settings.repo_dir, settings.git_remote, settings.deploy_branch)
+        if not ok:
+            await message.answer(f"Deploy упал:\n<pre>{output[-3500:]}</pre>")
+            return
+        await message.answer(f"Git обновлён:\n<pre>{output[-3500:]}</pre>\nПерезапускаюсь...")
+        await asyncio.sleep(1)
+        os._exit(0)
+
+    @router.callback_query(F.data == "back_main")
+    async def cb_back_main(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer("Главное меню:", reply_markup=main_menu())
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_status")
+    async def cb_menu_status(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer(await render_status_text())
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_scan")
+    async def cb_menu_scan(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer("Запускаю проверку...")
+        stats = await engine.run_once()
+        await callback.message.answer(
+            f"Готово. Источников ок: {stats.sources_ok}, ошибок: {stats.sources_failed}, "
+            f"увидел туров: {stats.deals_seen}, сохранил: {stats.deals_saved}, алертов: {stats.alerts_sent}"
+        )
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_top")
+    async def cb_menu_top(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer(await render_top_deals_text(), disable_web_page_preview=True)
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_history")
+    async def cb_menu_history(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer(await render_history_text())
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_sources")
+    async def cb_menu_sources(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer(await render_sources_text(), disable_web_page_preview=True)
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_filters")
+    async def cb_menu_filters(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer("Фильтры:", reply_markup=filters_menu())
+        await callback.answer()
+
+    @router.callback_query(F.data == "menu_admin")
+    async def cb_menu_admin(callback: CallbackQuery):
+        if not is_admin_callback(callback):
+            await callback.answer("Нет доступа.", show_alert=True)
+            return
+        await callback.message.answer("Админ панель:", reply_markup=admin_menu())
+        await callback.answer()
+
+    @router.callback_query(F.data.startswith("set_budget_"))
+    async def cb_set_budget(callback: CallbackQuery):
+        value = int(callback.data.split("_")[-1])
+        await update_profile_and_answer(callback, budget=value)
+
+    @router.callback_query(F.data.startswith("set_nights_"))
+    async def cb_set_nights(callback: CallbackQuery):
+        parts = callback.data.split("_")
+        min_n = int(parts[-2])
+        max_n = int(parts[-1])
+        await update_profile_and_answer(callback, nights_min=min_n, nights_max=max_n)
+
+    @router.callback_query(F.data.startswith("set_adults_"))
+    async def cb_set_adults(callback: CallbackQuery):
+        value = int(callback.data.split("_")[-1])
+        await update_profile_and_answer(callback, adults=value)
+
+    @router.callback_query(F.data == "set_destination_dubai")
+    async def cb_set_destination_dubai(callback: CallbackQuery):
+        await update_profile_and_answer(callback, destination="Дубай")
+
+    @router.callback_query(F.data == "set_city_moscow")
+    async def cb_set_city_moscow(callback: CallbackQuery):
+        await update_profile_and_answer(callback, departure_city="Москва")
+
+    @router.callback_query(F.data.startswith("set_drop_"))
+    async def cb_set_drop(callback: CallbackQuery):
+        value = float(callback.data.split("_")[-1])
+        await update_profile_and_answer(callback, min_drop_percent=value)
+
+    @router.callback_query(F.data.startswith("set_results_"))
+    async def cb_set_results(callback: CallbackQuery):
+        value = int(callback.data.split("_")[-1])
+        await update_profile_and_answer(callback, max_results_per_source=value)
+
     @router.callback_query(F.data == "admin_status")
     async def cb_admin_status(callback: CallbackQuery):
         if not is_admin_callback(callback):
@@ -417,18 +642,6 @@ def build_router(settings: Settings, sessionmaker: async_sessionmaker, engine: S
             return
         await callback.message.answer(f"Git обновлён:\n<pre>{output[-3500:]}</pre>\nПерезапускаюсь...")
         await callback.answer()
-        await asyncio.sleep(1)
-        os._exit(0)
-
-    @router.message(Command("deploy"))
-    @admin_only
-    async def deploy_cmd(message: Message):
-        await message.answer("Тяну новый код из Git...")
-        ok, output = await run_deploy(settings.repo_dir, settings.git_remote, settings.deploy_branch)
-        if not ok:
-            await message.answer(f"Deploy упал:\n<pre>{output[-3500:]}</pre>")
-            return
-        await message.answer(f"Git обновлён:\n<pre>{output[-3500:]}</pre>\nПерезапускаюсь...")
         await asyncio.sleep(1)
         os._exit(0)
 
